@@ -87,7 +87,7 @@ module BarkestServerPrep
       self.host_info = {}
 
       @waiting = true
-      admin_shell do |shell|
+      admin_shell(false) do |shell|
         begin
           # get the release info.
           results = shell.exec('cat /etc/*-release').split("\n").map{|v| v.strip}
