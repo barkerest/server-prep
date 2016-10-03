@@ -91,7 +91,7 @@ class ServerPrep
     shell.instance_variable_set(:@stat_console, @stat_console)
 
     def shell.exec(command, &block)
-      if enable_echo
+      if @enable_echo
         super command do |data,type|
           @stat_console.append_data data
           if block
@@ -179,7 +179,8 @@ if $0 == __FILE__
       STDIN.gets
     end
 
-    print "\n"
+    print "\0332J\n"
+    print "\0332J\n"
 
     prep.perform
   rescue =>e
