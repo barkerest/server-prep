@@ -33,7 +33,7 @@ class StatusConsole
     display_lines << status_line
 
     display_lines.each_with_index do |line,index|
-      print "\033[#{index + 1};1H\033[0#{index == display_lines.count - 1 ? ';33;1' : ''}m#{line + (' ' * (width - line.length - 1))}\033[0m"
+      print "\033[#{index + 1};1H\033[0#{index == display_lines.count - 1 ? ';33;1' : ''}m#{line + (' ' * (width - line.length - ((index == display_lines.count - 1) ? 0 : 1)))}\033[0m"
     end
     # move to row right above the last row to simulate continuity in the log messages.
     print "\033[#{height - 1};1H"

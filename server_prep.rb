@@ -75,9 +75,17 @@ class ServerPrep
     set_status ''
     print "\n\033[0;1mServer prep is complete.\033[0m\nThe deployment user details are as follows:\nUser: #{deploy_user}\nPassword: #{deploy_password}\nHome: #{deploy_home}\n\n"
 
+    logfile.flush
+    logfile.close
+    @logfile = nil
+
   end
 
   private
+
+  def logfile
+    @logfile ||= File.open("server-prep_#{host}.log", 'wt')
+  end
 
   def enable_echo(shell)
 
@@ -89,10 +97,12 @@ class ServerPrep
     end
 
     shell.instance_variable_set(:@stat_console, @stat_console)
+    shell.instance_variable_set(:@prep, self)
 
     def shell.exec(command, &block)
       if @enable_echo
         super command do |data,type|
+          @prep.send(:logfile).write(data)
           @stat_console.append_data data
           if block
             block.call(data, type)
@@ -101,7 +111,14 @@ class ServerPrep
           end
         end
       else
-        super command, &block
+        super command do |data,type|
+          @prep.send(:logfile).write(data)
+          if block
+            block.call(data, type)
+          else
+            nil
+          end
+        end
       end
     end
 
