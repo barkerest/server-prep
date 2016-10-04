@@ -15,7 +15,7 @@ module BarkestServerPrep
     private
 
     def centos_update_system(shell)
-      shell.sudo_exec('yum -y update') { |data,_| print data }
+      shell.sudo_exec('yum -y update')
     end
 
     def ubuntu_update_system(shell)

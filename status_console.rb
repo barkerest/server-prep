@@ -17,7 +17,7 @@ class StatusConsole
 
   def paint
     last_log_line = @log_lines.count - ((@log_lines.count > 0 && @log_lines.last === true) ? 2 : 1)
-    log_line_count = height - 3
+    log_line_count = height - 2
     display_lines =
         if last_log_line < 0
           []
@@ -29,25 +29,31 @@ class StatusConsole
           @log_lines[first_log_line..last_log_line] || []
         end
 
-    display_lines << '' while display_lines.count < log_line_count
+    display_lines << ' ' while display_lines.count < log_line_count
 
     # just in case we have too many for some reason...
     display_lines.delete_at(0) while display_lines.count >= log_line_count
 
     # add a blank and then the status line.
-    display_lines <<  ''
+    display_lines <<  ' '
     display_lines << status_line
 
+    print "\033[?25l\033[1;1H"
     display_lines.each_with_index do |line,index|
       row = index + 1
       last_line = (row == display_lines.count)
       line_color = last_line ? ';33;1;40' : ''
-      pad_length = width - line.length - (last_line ? 1 : 0)
-      print "\033[#{row};1H\033[0#{line_color}m#{line}#{' ' * pad_length}\033[0m"
+      max_width = width - (last_line ? 1 : 0)
+      if line.length > max_width
+        line = line[0...max_width]
+      else
+        line += (' ' * (max_width - line.length))
+      end
+      print "\033[#{row};1H\033[0#{line_color}m#{line}\033[0m"
     end
 
     # move to row right above the last row to simulate continuity in the log messages.
-    print "\033[#{height - 1};1H"
+    print "\033[#{display_lines.count - 1};1H\033[?25h"
 
   end
 
