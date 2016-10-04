@@ -196,8 +196,8 @@ if $0 == __FILE__
       STDIN.gets
     end
 
-    print "\0332J\n"
-    print "\0332J\n"
+    print "\033[2J\n"
+    print "\033[2J\n"
 
     prep.perform
   rescue =>e
