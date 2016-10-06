@@ -11,13 +11,15 @@ module BarkestServerPrep
     PASSENGER_ROOT_SEARCH = %w(/usr/share /usr/lib)
 
     NGINX_CONFIG = <<-EOCFG
-user nginx;
-worker_processes 4;
-pid /run/nginx.pid;
+# General nginx configuration from BarkerEST server-prep script.
+
+user              nginx;
+worker_processes  1;
+error_log         /var/log/nginx/error.log;
+pid               /run/nginx.pid;
 
 events {
-  worker_connections 768;
-  # multi_accept on;
+  worker_connections 1024;
 }
 
 http {
@@ -25,18 +27,21 @@ http {
   # Basic Settings
   ##
 
+  include /etc/nginx/mime.types;
+  default_type application/octet-stream;
+
+  log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                    '$status $body_bytes_sent "$http_referer" '
+                    '"$http_user_agent" "$http_x_forwarded_for"';
+  access_log        /var/log/nginx/access.log  main;
+
   sendfile on;
+  index             index.html index.htm;
+
   tcp_nopush on;
   tcp_nodelay on;
   keepalive_timeout 65;
   types_hash_max_size 2048;
-  # server_tokens off;
-
-  # server_names_hash_bucket_size 64;
-  # server_name_in_redirect off;
-
-  include /etc/nginx/mime.types;
-  default_type application/octet-stream;
 
   ##
   # SSL Settings
@@ -50,33 +55,13 @@ http {
   ssl_dhparam             /var/ssl/dhparams.pem;
 
   ##
-  # Logging Settings
-  ##
-
-  access_log /var/log/nginx/access.log;
-  error_log /var/log/nginx/error.log error;
-
-  ##
-  # Gzip settings
-  ##
-
-  gzip on;
-  gzip_disable "msie6";
-  # gzip_vary on;
-  # gzip_proxied any;
-  # gzip_comp_level 6;
-  # gzip_buffers 16 8k;
-  # gzip_http_version 1.1;
-  # gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
-
-  ##
   # Phusion Passenger settings
   ##
 
-  passenger_root ??PR;
-  passenger_ruby ??DH/.rbenv/shims/ruby;
+  passenger_root                  ??PR;
+  passenger_ruby                  ??DH/.rbenv/shims/ruby;
   passenger_instance_registry_dir /var/run/passenger-instreg;
-  passenger_log_level 1;
+  passenger_log_level             1;
 
   ##
   # Default server settings
@@ -86,8 +71,8 @@ http {
     listen 80 default_server;
     listen 443 ssl;
 
-    ssl_certificate /var/ssl/ssl.crt;
-    ssl_certificate_key /var/ssl/ssl.key;
+    ssl_certificate       /var/ssl/ssl.crt;
+    ssl_certificate_key   /var/ssl/ssl.key;
 
     # server_name www.somesite.com;
 
@@ -115,35 +100,22 @@ location / {
 }
     EOCFG
 
-    FLY_TRAP_PING = "ft-" + SecureRandom.urlsafe_base64(9)
 
-    FLY_TRAP_ROUTES = <<-EOCFG
-Rails.application.routes.draw do
-  # [#{Time.now.strftime('%Y-%m-%d %H:%M:%S')}]
-  # This route defines the ping address, which is a unique address generated specifically for this web server.
-  # No other web server or host knows it.
-  # If you decide to change this address, you will want to update the associated crontab job as well.
-  get '/#{FLY_TRAP_PING}', controller: 'trap', action: 'ping'
 
-  # These two simply pour everything else into the trap controller for logging.
-  get '/(:trigger)', trigger: /.+/, controller: 'trap', action: 'index'
-  root 'trap#index'
-end
-    EOCFG
-
-    private_constant :NGINX_CONFIG, :DEFAULT_LOC, :PASSENGER_ROOT_PLACEHOLDER, :DEPLOY_HOME_PLACEHOLDER, :PASSENGER_ROOT_PATH, :PASSENGER_ROOT_SEARCH, :FLY_TRAP_PING, :FLY_TRAP_ROUTES
+    private_constant :NGINX_CONFIG, :DEFAULT_LOC, :PASSENGER_ROOT_PLACEHOLDER, :DEPLOY_HOME_PLACEHOLDER, :PASSENGER_ROOT_PATH, :PASSENGER_ROOT_SEARCH
 
     def configure_passenger(shell)
 
-      # add both users to the nginx group.
+      # add both users to each other.
       shell.sudo_exec "usermod -G nginx -a #{deploy_user}"
-      shell.sudo_exec "usermod -G nginx -a #{admin_user}"
+      shell.sudo_exec "usermod -G #{deploy_user} -a nginx"
 
       # backup and remove the original configuration.
-      shell.sudo_exec 'mv -f /etc/nginx/nginx.conf /etc/nginx/nginx.conf.original'
+      shell.sudo_exec 'if [ ! -f /etc/nginx/nginx.conf.original ]; then mv -f /etc/nginx/nginx.conf /etc/nginx/nginx.conf.original; fi'
 
       # get the passenger_root path.
-      pr_path = shell.sudo_exec("ls {#{PASSENGER_ROOT_SEARCH.join(',')}}/#{PASSENGER_ROOT_PATH} 2>/dev/null").to_s.split("\n").first.to_s.strip
+      pr_path = shell.sudo_exec("ls {#{PASSENGER_ROOT_SEARCH.join(',')}}/#{PASSENGER_ROOT_PATH} 2>/dev/null") rescue nil
+      pr_path = pr_path.to_s.split("\n").first.to_s.strip
       raise 'failed to locate passenger_root path' if pr_path == ''
 
       # get the home path for the current user.
@@ -165,7 +137,8 @@ end
       # create the location folders.
       %w(locations-available locations-enabled).each do |loc|
         loc = "/etc/nginx/#{loc}"
-        shell.sudo_exec "mkdir #{loc} && chown nginx:nginx #{loc} && chmod 775 #{loc}"
+        shell.sudo_exec "if [ ! -d #{loc} ]; then mkdir #{loc}; fi"
+        shell.sudo_exec "chown nginx:nginx #{loc} && chmod 2775 #{loc}"
       end
 
       # create the default location.
@@ -180,21 +153,11 @@ end
       shell.sudo_exec "ln -s /etc/nginx/locations-available/default /etc/nginx/locations-enabled/default"
 
       # create the SSL files.
-      shell.sudo_exec 'mkdir /var/ssl && chown nginx:nginx /var/ssl && chmod 700 /var/ssl'
+      shell.sudo_exec 'if [ ! -d /var/ssl ]; then mkdir /var/ssl; fi'
+      shell.sudo_exec 'chown nginx:nginx /var/ssl && chmod 700 /var/ssl'
       shell.sudo_exec 'openssl dhparam -out /var/ssl/dhparams.pem 2048'
       shell.sudo_exec 'openssl req -x509 -nodes -days 365 -newkey rsa:4096 -subj "/C=US/ST=Pennsylvania/L=Pittsburgh/O=WEB/CN=$(hostname -f)" -keyout /var/ssl/ssl.key -out /var/ssl/ssl.crt'
-
-      # install the fly_trap app and write the new routes.rb file.
-      shell.exec "git clone https://github.com/barkerest/fly_trap.git #{deploy_home}/fly_trap"
-      shell.write_file "#{deploy_home}/fly_trap/config/routes.rb", FLY_TRAP_ROUTES
-      shell.exec "cd #{deploy_home}/fly_trap && bundle && rake db:migrate:reset"
-      shell.sudo_exec "chown deploy:deploy #{deploy_home}/fly_trap -R"
-
-      # restart the nginx service
-      shell.sudo_exec 'systemctl restart nginx.service'
-
-      # generate the cron job.
-      shell.sudo_exec "(crontab -l; echo \"*/5 * * * * wget http://localhost/#{FLY_TRAP_PING} >/dev/null 2>&1\";) | crontab -"
+      shell.sudo_exec 'chown nginx:nginx /var/ssl/* -R && chmod 600 /var/ssl/*'
 
     end
 

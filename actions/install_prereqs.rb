@@ -15,7 +15,7 @@ module BarkestServerPrep
     private
 
     def centos_install_prereqs(shell)
-      shell.sudo_exec 'yum -y install git-core zlib zlib-devel gcc g++ patch readline readline-devel libyaml-devel libffi-devel openssl-devel make bzip2 autoconf automake libtool bison curl sqlite-devel'
+      shell.sudo_exec 'yum -y install git-core zlib zlib-devel gcc gcc-c++ patch readline readline-devel libyaml-devel libffi-devel openssl-devel make bzip2 autoconf automake libtool bison curl sqlite-devel'
       shell.sudo_exec 'yum -y install epel-release yum-utils'
       shell.sudo_exec 'yum-config-manager --enable epel'
       shell.sudo_exec 'yum -y install nodejs'

@@ -17,6 +17,9 @@ require_relative './actions/install_rails.rb'
 require_relative './actions/install_db.rb'
 require_relative './actions/install_passenger.rb'
 require_relative './actions/configure_passenger.rb'
+require_relative './actions/create_nginx_utils.rb'
+require_relative './actions/install_flytrap.rb'
+require_relative './actions/restart_nginx.rb'
 
 class ServerPrep
 
@@ -30,6 +33,9 @@ class ServerPrep
   include BarkestServerPrep::InstallDb
   include BarkestServerPrep::InstallPassenger
   include BarkestServerPrep::ConfigurePassenger
+  include BarkestServerPrep::CreateNginxUtils
+  include BarkestServerPrep::InstallFlytrap
+  include BarkestServerPrep::RestartNginx
 
   def initialize
     @stat_console = StatusConsole.new
@@ -49,19 +55,19 @@ class ServerPrep
 
       set_status 'Creating deployment user...'
       add_deploy_user shell
-    end
-    deploy_shell do |shell|
-      set_status 'Installing rbenv...'
-      install_rbenv shell
-    end
-    deploy_shell do |shell|
-      set_status "Installing Ruby #{ruby_version} (this will take a while)..."
-      install_ruby shell
 
-      set_status "Installing Rails #{rails_version} (this will take a while)..."
-      install_rails shell
-    end
-    admin_shell do |shell|
+      deploy_shell do |shell2|
+        set_status 'Installing rbenv...'
+        install_rbenv shell2
+      end
+      deploy_shell do |shell2|
+        set_status "Installing Ruby #{ruby_version} (this will take a while)..."
+        install_ruby shell2
+
+        set_status "Installing Rails #{rails_version} (this will take a while)..."
+        install_rails shell2
+      end
+
       set_status 'Installing database engine...'
       install_db shell
 
@@ -70,6 +76,17 @@ class ServerPrep
 
       set_status 'Configuring nginx & passenger...'
       configure_passenger shell
+
+      set_status 'Creating nginx utilities...'
+      create_nginx_utils shell
+
+      deploy_shell do |shell2|
+        set_status 'Installing fly_trap...'
+        install_flytrap shell2
+      end
+
+      set_status 'Restarting nginx...'
+      restart_nginx shell
     end
 
     set_status ''
@@ -96,30 +113,42 @@ class ServerPrep
       @enable_echo = false
     end
 
+    def shell.last_exit_code
+      @last_exit_code ||= 0
+    end
+
     shell.instance_variable_set(:@stat_console, @stat_console)
     shell.instance_variable_set(:@prep, self)
 
     def shell.exec(command, &block)
-      if @enable_echo
-        super command do |data,type|
-          @prep.send(:logfile).write(data)
-          @stat_console.append_data data
-          if block
-            block.call(data, type)
+      ret =
+          if @enable_echo
+            super command do |data,type|
+              @prep.send(:logfile).write(data)
+              @stat_console.append_data data
+              if block
+                block.call(data, type)
+              else
+                nil
+              end
+            end
           else
-            nil
+            super command do |data,type|
+              @prep.send(:logfile).write(data)
+              if block
+                block.call(data, type)
+              else
+                nil
+              end
+            end
           end
-        end
-      else
-        super command do |data,type|
-          @prep.send(:logfile).write(data)
-          if block
-            block.call(data, type)
-          else
-            nil
-          end
-        end
-      end
+      @last_exit_code = super('echo $?').split("\n").first.strip.to_i
+      @stat_console.append_data "\n" if @enable_echo
+
+      # enforce clean code
+      raise "Command exited with #{@last_exit_code}." unless @last_exit_code == 0
+
+      ret
     end
 
   end

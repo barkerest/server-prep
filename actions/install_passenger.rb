@@ -19,6 +19,9 @@ module BarkestServerPrep
       shell.sudo_exec 'yum -y install pygpgme curl'
       shell.sudo_exec 'curl --fail -sSLo /etc/yum.repos.d/passenger.repo https://oss-binaries.phusionpassenger.com/yum/definitions/el-passenger.repo'
       shell.sudo_exec 'yum -y install nginx passenger'
+      shell.sudo_exec 'systemctl stop nginx' rescue nil
+      shell.sudo_exec 'systemctl start nginx'
+      shell.sudo_exec 'systemctl enable nginx'
     end
 
     def ubuntu_install_passenger(shell)
@@ -42,7 +45,9 @@ module BarkestServerPrep
       shell.sudo_exec "echo deb https://oss-binaries.phusionpassenger.com/apt/passenger #{distro} main > /etc/apt/sources.list.d/passenger.list"
       shell.sudo_exec 'apt-get update'
       shell.sudo_exec 'apt-get -y install nginx-extras passenger'
-      shell.sudo_exec 'service nginx start'
+      shell.sudo_exec 'systemctl stop nginx' rescue nil
+      shell.sudo_exec 'systemctl start nginx'
+      shell.sudo_exec 'systemctl enable nginx'
     end
 
   end
