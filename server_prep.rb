@@ -128,8 +128,8 @@ class ServerPrep
     shell.instance_variable_set(:@sudo_password, admin_password)
 
     def shell.sudo_exec(command, &block)
-      sudo_prompt = "sudo_password:"
-      sudo_regex = /sudo_password:\w*$/
+      sudo_prompt = "[sp!"
+      sudo_regex = /\[sp!\w*$/
 
       self.exec("sudo -p \"#{sudo_prompt}\" bash -c \"#{command.gsub('"','\\"')}\"") do |data,type|
         if sudo_regex.match(data)
