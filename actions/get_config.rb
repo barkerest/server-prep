@@ -27,51 +27,75 @@ module BarkestServerPrep
     private
 
     def get_deploy_config(defaults = false)
+      deploy_default = 'deploy'
+      ruby_default = '2.2.5'
+      rails_default = '4.2.5.2'
+
       print "The deployment user will be recreated on the target.\n"
       print "That means if the user already exists, all their data will be removed.\n"
-      print 'What is the username of your deployment user (default: deploy)? '
-      self.deploy_user = defaults ? '' : STDIN.gets.to_s.strip
-      self.deploy_user = 'deploy' if self.deploy_user == ''
 
-      print "\n" if defaults
+      print "What is the username of your deployment user (default: #{deploy_default})? "
+      if defaults
+        self.deploy_user = deploy_default
+        print "#{deploy_default}\n"
+      else
+        self.deploy_user = STDIN.gets.to_s.strip
+        self.deploy_user = deploy_default if self.deploy_user == ''
+      end
 
       raise 'Deployment user cannot be the same as the admin user.' if deploy_user == admin_user
 
       # generate a 24-character password (18 * (4/3) == 24)
       self.deploy_password = SecureRandom.urlsafe_base64(18)
 
-      print 'What version of Ruby would you like to install (default: 2.2.5)? '
-      self.ruby_version = defaults ? '' : STDIN.gets.strip
-      self.ruby_version = '2.2.5' if self.ruby_version == ''
-      a,b,c = self.ruby_version.split('.').map{|v| v.to_i}
-      a ||= 2
-      b ||= 0
-      c ||= 0
-      self.ruby_version = "#{a}.#{b}.#{c}"
-      print "\n" if defaults
+      print "What version of Ruby would you like to install (default: #{ruby_default})? "
+      if defaults
+        self.ruby_version = ruby_default
+        print "#{ruby_default}\n"
+      else
+        self.ruby_version = STDIN.gets.strip
+        self.ruby_version = ruby_default if self.ruby_version == ''
+        a,b,c = self.ruby_version.split('.').map{|v| v.to_i}
+        a ||= 2
+        b ||= 0
+        c ||= 0
+        self.ruby_version = "#{a}.#{b}.#{c}"
+      end
 
-      print 'What version of Rails would you like to install (default: 4.2.5.2)? '
-      self.rails_version = defaults ? '' : STDIN.gets.strip
-      self.rails_version = '4.2.5.2' if self.rails_version == ''
-      a,b,c,d = self.rails_version.split('.').map{|v| v.to_i}
-      a ||= 4
-      b ||= 0
-      c ||= 0
-      d ||= 0
-      self.rails_version = "#{a}.#{b}.#{c}.#{d}"
-      print "\n" if defaults
+      print "What version of Rails would you like to install (default: #{rails_default})? "
+      if defaults
+        self.rails_version = rails_default
+        print "#{rails_default}\n"
+      else
+        self.rails_version = defaults ? '' : STDIN.gets.strip
+        self.rails_version = '4.2.5.2' if self.rails_version == ''
+        a,b,c,d = self.rails_version.split('.').map{|v| v.to_i}
+        a ||= 4
+        b ||= 0
+        c ||= 0
+        d ||= 0
+        self.rails_version = "#{a}.#{b}.#{c}.#{d}"
+      end
     end
 
     def get_admin_config(host_address = nil, admin = nil, password = nil)
       print 'What is the host we will be connecting to? '
-      self.host = host_address || STDIN.gets.to_s.strip
-      print "\n" if host_address
+      if host_address.to_s.strip != ''
+        self.host = host_address.to_s.strip
+        print "#{self.host}\n"
+      else
+        self.host = STDIN.gets.to_s.strip
+      end
 
       raise 'Host is required.' if host == ''
 
       print 'What is the username of a user with sudoer priviledges? '
-      self.admin_user = admin || STDIN.gets.to_s.strip
-      print "\n" if admin
+      if admin.to_s.strip != ''
+        self.admin_user = admin.to_s.strip
+        print "#{self.admin_user}\n"
+      else
+        self.admin_user = STDIN.gets.to_s.strip
+      end
 
       raise 'Admin user is required.' if admin_user == ''
       raise 'Admin user cannot be the same as the deployment user.' if admin_user == deploy_user
