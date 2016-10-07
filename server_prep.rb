@@ -1,11 +1,11 @@
 #!/usr/bin/env ruby
 
 require 'barkest_ssh'
+raise "Requires 'barkest_ssh' version 1.1.10 or greater." unless Gem::Version.new(BarkestSsh::VERSION) >= Gem::Version.new('1.1.10')
+
 require 'io/console'
 require 'securerandom'
 require_relative './status_console.rb'
-
-raise "Requires 'barkest_ssh' version 1.1.0 or greater." unless BarkestSsh::VERSION.to_f >= 1.1
 
 require_relative './actions/get_config.rb'
 require_relative './actions/update_system.rb'
@@ -90,7 +90,21 @@ class ServerPrep
     end
 
     set_status ''
-    print "\n\033[0;1mServer prep is complete.\033[0m\nThe deployment user details are as follows:\nUser: #{deploy_user}\nPassword: #{deploy_password}\nHome: #{deploy_home}\n\n"
+
+    print <<-ENDSUMMARY
+
+Deployment User
+--------------------------------------------------
+User:     \033[0;1m#{deploy_user}\033[0m
+Password: \033[0;1m#{deploy_password}\033[0m
+Home:     \033[0;1m#{deploy_home}\033[0m
+
+Server Test Path
+--------------------------------------------------
+\033[0;1m#{fly_trap_path}\033[0m
+
+\033[0;32;1mServer prep has completed.\033[0m
+    ENDSUMMARY
 
     logfile.flush
     logfile.close
@@ -104,26 +118,23 @@ class ServerPrep
     @logfile ||= File.open("server-prep_#{host}.log", 'wt')
   end
 
-  def enable_echo(shell)
+  def enhance_shell(shell)
 
     def shell.enable_echo
       @enable_echo = true
     end
+
     def shell.disable_echo
       @enable_echo = false
-    end
-
-    def shell.last_exit_code
-      @last_exit_code ||= 0
     end
 
     shell.instance_variable_set(:@stat_console, @stat_console)
     shell.instance_variable_set(:@prep, self)
 
-    def shell.exec(command, &block)
+    def shell.exec(command, options = {}, &block)
       ret =
           if @enable_echo
-            super command do |data,type|
+            super command, options do |data,type|
               @prep.send(:logfile).write(data)
               @stat_console.append_data data
               if block
@@ -133,7 +144,7 @@ class ServerPrep
               end
             end
           else
-            super command do |data,type|
+            super command, options do |data,type|
               @prep.send(:logfile).write(data)
               if block
                 block.call(data, type)
@@ -142,36 +153,10 @@ class ServerPrep
               end
             end
           end
-      @last_exit_code = super('echo $?').split("\n").first.strip.to_i
+
       @stat_console.append_data "\n" if @enable_echo
 
-      # enforce clean code
-      raise "Command exited with #{@last_exit_code}." unless @last_exit_code == 0
-
       ret
-    end
-
-  end
-
-  def enable_sudo(shell)
-    shell.instance_variable_set(:@sudo_password, admin_password)
-
-    def shell.sudo_exec(command, &block)
-      sudo_prompt = "[sp:"
-      sudo_regex = /\[sp:\w*$/
-
-      self.exec("sudo -p \"#{sudo_prompt}\" bash -c \"#{command.gsub('"','\\"')}\"") do |data,type|
-        if sudo_regex.match(data)
-          @sudo_password
-        else
-          if block
-            block.call(data, type)
-          else
-            nil
-          end
-        end
-      end
-
     end
 
   end
@@ -182,10 +167,10 @@ class ServerPrep
         user: admin_user,
         password: admin_password,
         silence_wait: 0,
+        replace_cr: "\n",
     ) do |shell|
 
-      enable_echo shell
-      enable_sudo shell
+      enhance_shell shell
 
       shell.enable_echo if auto_enable_echo
 
@@ -199,9 +184,10 @@ class ServerPrep
         user: deploy_user,
         password: deploy_password,
         silence_wait: 0,
+        replace_cr: "\n",
     ) do |shell|
 
-      enable_echo shell
+      enhance_shell shell
 
       shell.enable_echo if auto_enable_echo
 

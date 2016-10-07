@@ -13,7 +13,7 @@ module BarkestServerPrep
     NGINX_CONFIG = <<-EOCFG
 # General nginx configuration from BarkerEST server-prep script.
 
-user              nginx;
+user              ruby-apps;
 worker_processes  1;
 error_log         /var/log/nginx/error.log;
 pid               /run/nginx.pid;
@@ -90,7 +90,7 @@ http {
 # See the fly_trap app's README for more information about it.
 location / {
   # path to the public folder in your app.
-  root                ??DH/fly_trap/public;
+  root                ??DH/apps/fly_trap/public;
 
   # path rails will use as the root path, should match the path provided to location above.
   passenger_base_uri  /;
@@ -106,15 +106,18 @@ location / {
 
     def configure_passenger(shell)
 
+      # add the ruby-apps user.
+      shell.sudo_exec_ignore "useradd -mU ruby-apps"
+
       # add both users to each other.
-      shell.sudo_exec "usermod -G nginx -a #{deploy_user}"
-      shell.sudo_exec "usermod -G #{deploy_user} -a nginx"
+      shell.sudo_exec_ignore "usermod -G ruby-apps -a #{deploy_user}"
+      shell.sudo_exec_ignore "usermod -G #{deploy_user} -a ruby-apps"
 
       # backup and remove the original configuration.
       shell.sudo_exec 'if [ ! -f /etc/nginx/nginx.conf.original ]; then mv -f /etc/nginx/nginx.conf /etc/nginx/nginx.conf.original; fi'
 
       # get the passenger_root path.
-      pr_path = shell.sudo_exec("ls {#{PASSENGER_ROOT_SEARCH.join(',')}}/#{PASSENGER_ROOT_PATH} 2>/dev/null") rescue nil
+      pr_path = shell.sudo_exec_ignore("ls {#{PASSENGER_ROOT_SEARCH.join(',')}}/#{PASSENGER_ROOT_PATH} 2>/dev/null")
       pr_path = pr_path.to_s.split("\n").first.to_s.strip
       raise 'failed to locate passenger_root path' if pr_path == ''
 
@@ -138,7 +141,7 @@ location / {
       %w(locations-available locations-enabled).each do |loc|
         loc = "/etc/nginx/#{loc}"
         shell.sudo_exec "if [ ! -d #{loc} ]; then mkdir #{loc}; fi"
-        shell.sudo_exec "chown nginx:nginx #{loc} && chmod 2775 #{loc}"
+        shell.sudo_exec "chown #{deploy_user}:root #{loc} && chmod 6755 #{loc}"
       end
 
       # create the default location.
@@ -149,15 +152,24 @@ location / {
               .gsub(DEPLOY_HOME_PLACEHOLDER, deploy_home)
       )
       shell.sudo_exec "mv -f #{home_path}/default.loc /etc/nginx/locations-available/default"
-      shell.sudo_exec 'chown nginx:nginx /etc/nginx/locations-available/default && chmod 664 /etc/nginx/locations-available/default'
+      shell.sudo_exec "chown #{deploy_user}:root /etc/nginx/locations-available/default && chmod 644 /etc/nginx/locations-available/default"
       shell.sudo_exec "ln -s /etc/nginx/locations-available/default /etc/nginx/locations-enabled/default"
 
       # create the SSL files.
       shell.sudo_exec 'if [ ! -d /var/ssl ]; then mkdir /var/ssl; fi'
-      shell.sudo_exec 'chown nginx:nginx /var/ssl && chmod 700 /var/ssl'
+      shell.sudo_exec 'chown ruby-apps:root /var/ssl && chmod 700 /var/ssl'
+      # strengthen SSL by using unique dhparams
       shell.sudo_exec 'openssl dhparam -out /var/ssl/dhparams.pem 2048'
+      # generate a generic self-signed certificate to get started with.
       shell.sudo_exec 'openssl req -x509 -nodes -days 365 -newkey rsa:4096 -subj "/C=US/ST=Pennsylvania/L=Pittsburgh/O=WEB/CN=$(hostname -f)" -keyout /var/ssl/ssl.key -out /var/ssl/ssl.crt'
-      shell.sudo_exec 'chown nginx:nginx /var/ssl/* -R && chmod 600 /var/ssl/*'
+      shell.sudo_exec 'chown ruby-apps:root /var/ssl/* -R && chmod 600 /var/ssl/*'
+
+      # SELinux is a pain, but it is definitely best to make it work.
+      # set selinux permissions.
+      shell.sudo_exec 'semanage fcontext -a -t httpd_config_t -s system_u "/etc/nginx(/.*)?"'
+      shell.sudo_exec "semanage fcontext -a -t httpd_sys_rw_content_t -s system_u \"#{deploy_home}/apps(/.*)?\""
+      shell.sudo_exec 'restorecon -R /etc/nginx'
+      shell.sudo_exec "restorecon -R #{deploy_home}/apps"
 
     end
 

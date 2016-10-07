@@ -21,14 +21,23 @@ end
 
     private_constant :FLY_TRAP_PING, :FLY_TRAP_ROUTES
 
+    def fly_trap_path
+      "http://#{host}/#{FLY_TRAP_PING}"
+    end
+
     def install_flytrap(shell)
+      shell.exec "if [ ! -d #{deploy_home}/apps ]; then mkdir #{deploy_home}/apps; fi"
       # install the fly_trap app and write the new routes.rb file.
-      shell.exec "git clone https://github.com/barkerest/fly_trap.git #{deploy_home}/fly_trap"
-      shell.write_file "#{deploy_home}/fly_trap/config/routes.rb", FLY_TRAP_ROUTES
-      shell.exec "cd #{deploy_home}/fly_trap && bundle install && rake db:migrate:reset"
+      shell.exec "git clone https://github.com/barkerest/fly_trap.git #{deploy_home}/apps/fly_trap"
+      shell.write_file "#{deploy_home}/apps/fly_trap/config/routes.rb", FLY_TRAP_ROUTES
+      # prep the app.
+      shell.exec "cd #{deploy_home}/apps/fly_trap"
+      shell.exec "bundle install --deployment"
+      shell.exec "bundle exec rake db:migrate:reset RAILS_ENV=production"
+      shell.exec "bundle exec rake assets:precompile RAILS_ENV=production RAILS_GROUPS=assets RAILS_RELATIVE_URL_ROOT=\"/\""
       shell.exec "cd #{deploy_home}"
       # generate the cron job.
-      shell.exec "(crontab -l; echo \"*/5 * * * * wget http://localhost/#{FLY_TRAP_PING} >/dev/null 2>&1\";) | crontab -"
+      shell.exec "(crontab -l; echo \"*/5 * * * * curl http://localhost/#{FLY_TRAP_PING} >/dev/null 2>&1\";) | crontab -"
     end
 
   end

@@ -4,7 +4,7 @@ module BarkestServerPrep
     def restart_nginx(shell)
 
       # test the configuration.
-      shell.sudo_exec('nginx-test')
+      shell.sudo_exec('nginx -t')
 
       # stop the service.
       shell.sudo_exec 'systemctl stop nginx.service' rescue nil
