@@ -53,6 +53,9 @@ class ServerPrep
       set_status 'Installing prerequisites...'
       install_prereqs shell
 
+      set_status 'Installing database engine...'
+      install_db shell
+
       set_status 'Creating deployment user...'
       add_deploy_user shell
 
@@ -66,10 +69,10 @@ class ServerPrep
 
         set_status "Installing Rails #{rails_version} (this will take a while)..."
         install_rails shell2
-      end
 
-      set_status 'Installing database engine...'
-      install_db shell
+        set_status 'Installing fly_trap...'
+        install_flytrap shell2
+      end
 
       set_status 'Installing Phusion Passenger...'
       install_passenger shell
@@ -79,11 +82,6 @@ class ServerPrep
 
       set_status 'Creating nginx utilities...'
       create_nginx_utils shell
-
-      deploy_shell do |shell2|
-        set_status 'Installing fly_trap...'
-        install_flytrap shell2
-      end
 
       set_status 'Restarting nginx...'
       restart_nginx shell

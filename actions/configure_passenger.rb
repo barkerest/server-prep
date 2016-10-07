@@ -165,11 +165,14 @@ location / {
       shell.sudo_exec 'chown ruby-apps:root /var/ssl/* -R && chmod 600 /var/ssl/*'
 
       # SELinux is a pain, but it is definitely best to make it work.
-      # set selinux permissions.
-      shell.sudo_exec 'semanage fcontext -a -t httpd_config_t -s system_u "/etc/nginx(/.*)?"'
-      shell.sudo_exec "semanage fcontext -a -t httpd_sys_rw_content_t -s system_u \"#{deploy_home}/apps(/.*)?\""
-      shell.sudo_exec 'restorecon -R /etc/nginx'
-      shell.sudo_exec "restorecon -R #{deploy_home}/apps"
+      {
+          '/etc/nginx'          => 'httpd_config_t',
+          '/var/ssl'            => 'httpd_config_t',
+          "#{deploy_home}/apps" => 'httpd_sys_content_t',
+      }.each do |path,type|
+        shell.sudo_exec "semanager fcontext -a -t #{type} \"#{path}(/.*)?\""
+        shell.sudo_exec "restorecon -R #{path}"
+      end
 
     end
 
