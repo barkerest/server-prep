@@ -166,6 +166,7 @@ Server Test Path
         password: admin_password,
         silence_wait: 0,
         replace_cr: "\n",
+        on_non_zero_exit_code: :raise_error,
     ) do |shell|
 
       enhance_shell shell
@@ -183,6 +184,7 @@ Server Test Path
         password: deploy_password,
         silence_wait: 0,
         replace_cr: "\n",
+        on_non_zero_exit_code: :raise_error,
     ) do |shell|
 
       enhance_shell shell
