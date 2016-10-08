@@ -69,12 +69,15 @@ http {
 
   server {
     listen 80 default_server;
+    listen [::]:80 default_server ipv6only=on;
     listen 443 ssl;
+    listen [::]:443 ssl;
 
     ssl_certificate       /var/ssl/ssl.crt;
     ssl_certificate_key   /var/ssl/ssl.key;
 
-    # server_name www.somesite.com;
+    # Set this as appropriate.
+    server_name localhost;
 
     proxy_set_header X-Forwarded-Proto $scheme;
 
@@ -164,15 +167,36 @@ location / {
       shell.sudo_exec 'openssl req -x509 -nodes -days 365 -newkey rsa:4096 -subj "/C=US/ST=Pennsylvania/L=Pittsburgh/O=WEB/CN=$(hostname -f)" -keyout /var/ssl/ssl.key -out /var/ssl/ssl.crt'
       shell.sudo_exec 'chown ruby-apps:root /var/ssl/* -R && chmod 600 /var/ssl/*'
 
+      case host_id
+        when :centos
+          centos_configure_passenger shell
+        when :ubuntu
+          ubuntu_configure_passenger shell
+        else
+          raise 'not implemented'
+      end
+
+    end
+
+    private
+
+    def centos_configure_passenger(shell)
       # SELinux is a pain, but it is definitely best to make it work.
       {
           '/etc/nginx'          => 'httpd_config_t',
           '/var/ssl'            => 'httpd_config_t',
           "#{deploy_home}/apps" => 'httpd_sys_content_t',
       }.each do |path,type|
-        shell.sudo_exec "semanager fcontext -a -t #{type} \"#{path}(/.*)?\""
+        shell.sudo_exec "semanage fcontext -a -t #{type} \"#{path}(/.*)?\""
         shell.sudo_exec "restorecon -R #{path}"
       end
+
+      # and we need to configure the firewall too.
+      shell.sudo_exec 'iptables -I INPUT -p tcp --dport 80 -j ACCEPT'
+      shell.sudo_exec 'iptables -I INPUT -p tcp --dport 443 -j ACCEPT'
+    end
+
+    def ubuntu_configure_passenger(shell)
 
     end
 

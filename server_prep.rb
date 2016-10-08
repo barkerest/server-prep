@@ -85,12 +85,17 @@ class ServerPrep
 
       set_status 'Restarting nginx...'
       restart_nginx shell
+
+      set_status 'Running test against fly_trap...'
+      shell.exec_ignore 'curl http://localhost/this-is-a-test'
+      shell.exec "curl #{fly_trap_path}"
     end
 
     set_status ''
 
-    print <<-ENDSUMMARY
+    print "\n\033[0m" + (' ' * IO.console_size[1]) + "\r"
 
+    print <<-ENDSUMMARY
 Deployment User
 --------------------------------------------------
 User:     \033[0;1m#{deploy_user}\033[0m

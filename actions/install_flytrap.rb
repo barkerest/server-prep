@@ -19,7 +19,18 @@ Rails.application.routes.draw do
 end
     EOCFG
 
-    private_constant :FLY_TRAP_PING, :FLY_TRAP_ROUTES
+    FLY_TRAP_SECRETS = <<-EOCFG
+# [#{Time.now.strftime('%Y-%m-%d %H:%M:%S')}]
+# The secrets were generated specifically for this application installation.
+test:
+  secret_key_base: #{SecureRandom.urlsafe_base64(60)}
+development:
+  secret_key_base: #{SecureRandom.urlsafe_base64(60)}
+production:
+  secret_key_base: #{SecureRandom.urlsafe_base64(60)}
+    EOCFG
+
+    private_constant :FLY_TRAP_PING, :FLY_TRAP_ROUTES, :FLY_TRAP_SECRETS
 
     def fly_trap_path
       "http://#{host}/#{FLY_TRAP_PING}"
@@ -30,6 +41,7 @@ end
       # install the fly_trap app and write the new routes.rb file.
       shell.exec "git clone https://github.com/barkerest/fly_trap.git #{deploy_home}/apps/fly_trap"
       shell.write_file "#{deploy_home}/apps/fly_trap/config/routes.rb", FLY_TRAP_ROUTES
+      shell.write_file "#{deploy_home}/apps/fly_trap/config/secrets.yml", FLY_TRAP_SECRETS
       # prep the app.
       shell.exec "cd #{deploy_home}/apps/fly_trap"
       shell.exec "bundle install --deployment"
