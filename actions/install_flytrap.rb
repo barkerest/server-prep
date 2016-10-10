@@ -38,6 +38,7 @@ production:
 
     def install_flytrap(shell)
       shell.exec "if [ ! -d #{deploy_home}/apps ]; then mkdir #{deploy_home}/apps; fi"
+      shell.exec "chmod 775 #{deploy_home}/apps"
       # install the fly_trap app and write the new routes.rb file.
       shell.exec "git clone https://github.com/barkerest/fly_trap.git #{deploy_home}/apps/fly_trap"
       shell.write_file "#{deploy_home}/apps/fly_trap/config/routes.rb", FLY_TRAP_ROUTES

@@ -18,7 +18,7 @@ module BarkestServerPrep
       # set the permissions on the user's home directory.
       # it should be /home/deploy or some such, but let's not assume so.
       self.deploy_home = shell.exec("eval echo \"~#{deploy_user}\"").split("\n").first.strip
-      shell.sudo_exec "chown #{deploy_user}:#{deploy_user} #{deploy_home} && chmod 775 #{deploy_home}"
+      shell.sudo_exec "chown #{deploy_user}:#{deploy_user} #{deploy_home} && chmod 755 #{deploy_home}"
 
     end
 

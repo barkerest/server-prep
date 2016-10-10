@@ -11,6 +11,17 @@ easy to figure out how to modify the code.  First you will need to modify `get_c
 your distro is accepted.  Then you will need to check the various files under `actions` to determine
 if you need to use a new function or if the centos or ubuntu version will work for your distro.
 
+There are some minor config differences between CentOS and Ubuntu.  First, CentOS makes use of SElinux, 
+whereas Ubuntu makes use of AppArmor.  SElinux is enabled for nginx by default, AppArmor is not.
+Second, Passenger _expects_ the passenger_instance_registry_dir to be different values on the two
+platforms.  On CentOS, we need to include this setting in the nginx.conf file, whereas on Ubuntu
+it works better to omit it.  This differences are all handled in the `configure_passenger` method.
+
+As a related note to the differences, the SElinux attributes seem to propagate properly into the 
+deployment apps path.  So as new apps are added, they seem to receive the correct attribute and
+would therefore be usable by nginx.
+
+
 ## usage
 
 You can let the script use defaults for the deployment user, ruby version, and rails version.
@@ -37,3 +48,14 @@ And then these will prompt for the password, user name, and host as needed:
 The defaults for Ruby and Rails are `2.2.5` and `4.2.5.2` repectively.  If you want to use different
 versions, you can change the defaults in `actions/get_config.rb` or omit the `-auto` flag so that you
 can answer all of the questions.
+
+
+## post-usage
+
+After the script has been run, the server is now configured with a self-signed SSL cert to enable HTTPS
+right out of the gate.  The nginx.conf file is setup to serve a single virtual server listening on ports
+80 and 443.  And one location "/" is configured and pointing to the `fly_trap` app.  Additional apps can
+be added to the deployment user's `apps`directory.  Once they are installed and configured, add a location
+file to the /etc/nginx/locations-available directory and then link to it in the 
+/etc/nginx/locations-enabled directory.  The setup script is also nice enough to create a `nginx-reload`
+executable that can be run by the deployment user.

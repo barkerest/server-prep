@@ -9,7 +9,9 @@ require_relative './status_console.rb'
 
 require_relative './actions/get_config.rb'
 require_relative './actions/update_system.rb'
+require_relative './actions/configure_ssh.rb'
 require_relative './actions/add_deploy_user.rb'
+require_relative './actions/ssh_copy_id.rb'
 require_relative './actions/install_prereqs.rb'
 require_relative './actions/install_rbenv.rb'
 require_relative './actions/install_ruby.rb'
@@ -25,7 +27,9 @@ class ServerPrep
 
   include BarkestServerPrep::GetConfig
   include BarkestServerPrep::UpdateSystem
+  include BarkestServerPrep::ConfigureSsh
   include BarkestServerPrep::AddDeployUser
+  include BarkestServerPrep::SshCopyId
   include BarkestServerPrep::InstallPrereqs
   include BarkestServerPrep::InstallRbenv
   include BarkestServerPrep::InstallRuby
@@ -50,6 +54,10 @@ class ServerPrep
       set_status 'Updating system software...'
       update_system shell
 
+      set_status 'Configuring SSH...'
+      configure_ssh shell
+    end
+    admin_shell do |shell|
       set_status 'Installing prerequisites...'
       install_prereqs shell
 
@@ -60,6 +68,9 @@ class ServerPrep
       add_deploy_user shell
 
       deploy_shell do |shell2|
+        set_status 'Installing SSH key...'
+        ssh_copy_id shell2
+
         set_status 'Installing rbenv...'
         install_rbenv shell2
       end
