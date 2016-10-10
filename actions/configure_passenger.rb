@@ -6,6 +6,7 @@ module BarkestServerPrep
 
     PASSENGER_ROOT_PLACEHOLDER = /\?\?PR/
     DEPLOY_HOME_PLACEHOLDER = /\?\?DH/
+    INST_REG_COMMENT_PLACEHOLDER = /\?\?IR/
 
     PASSENGER_ROOT_PATH = 'ruby/vendor_ruby/phusion_passenger/locations.ini'
     PASSENGER_ROOT_SEARCH = %w(/usr/share /usr/lib)
@@ -60,8 +61,8 @@ http {
 
   passenger_root                  ??PR;
   passenger_ruby                  ??DH/.rbenv/shims/ruby;
-  passenger_instance_registry_dir /var/run/passenger-instreg;
   passenger_log_level             1;
+  ??IRpassenger_instance_registry_dir /var/run/passenger-instreg;
 
   ##
   # Default server settings
@@ -105,7 +106,7 @@ location / {
 
 
 
-    private_constant :NGINX_CONFIG, :DEFAULT_LOC, :PASSENGER_ROOT_PLACEHOLDER, :DEPLOY_HOME_PLACEHOLDER, :PASSENGER_ROOT_PATH, :PASSENGER_ROOT_SEARCH
+    private_constant :NGINX_CONFIG, :DEFAULT_LOC, :PASSENGER_ROOT_PLACEHOLDER, :DEPLOY_HOME_PLACEHOLDER, :PASSENGER_ROOT_PATH, :PASSENGER_ROOT_SEARCH, :INST_REG_COMMENT_PLACEHOLDER
 
     def configure_passenger(shell)
 
@@ -134,6 +135,7 @@ location / {
           NGINX_CONFIG
               .gsub(PASSENGER_ROOT_PLACEHOLDER, pr_path)
               .gsub(DEPLOY_HOME_PLACEHOLDER, deploy_home)
+              .gsub(INST_REG_COMMENT_PLACEHOLDER, host_id == :centos ? '' : '# ')
       )
 
       # move it where it belongs.

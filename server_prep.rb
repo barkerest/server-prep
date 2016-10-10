@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'barkest_ssh'
-raise "Requires 'barkest_ssh' version 1.1.10 or greater." unless Gem::Version.new(BarkestSsh::VERSION) >= Gem::Version.new('1.1.10')
+raise "Requires 'barkest_ssh' version 1.1.12 or greater." unless Gem::Version.new(BarkestSsh::VERSION) >= Gem::Version.new('1.1.12')
 
 require 'io/console'
 require 'securerandom'
