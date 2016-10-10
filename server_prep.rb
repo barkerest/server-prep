@@ -96,6 +96,8 @@ class ServerPrep
     print "\n\033[0m" + (' ' * IO.console_size[1]) + "\r"
 
     print <<-ENDSUMMARY
+\033[0;32;1mServer prep has completed.\033[0m
+
 Deployment User
 --------------------------------------------------
 User:     \033[0;1m#{deploy_user}\033[0m
@@ -106,7 +108,6 @@ Server Test Path
 --------------------------------------------------
 \033[0;1m#{fly_trap_path}\033[0m
 
-\033[0;32;1mServer prep has completed.\033[0m
     ENDSUMMARY
 
     logfile.flush
