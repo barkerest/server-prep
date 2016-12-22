@@ -7,7 +7,8 @@ module BarkestServerPrep
     private :admin_password
 
     def get_config
-      print "This script will configure an Ubuntu or CentOS server for use with Phusion Passenger.\n"
+      print "This script will configure an Linux server for use with Phusion Passenger.\n"
+      print "It is currently setup to configure CentOS, Ubuntu, or Raspbian.\n"
 
       print "Press <ENTER> to continue, or <CTRL>+<C> to exit.\n"
       STDIN.gets
@@ -46,7 +47,13 @@ module BarkestServerPrep
       raise 'Deployment user cannot be the same as the admin user.' if deploy_user == admin_user
 
       # generate a 24-character password (18 * (4/3) == 24)
-      self.deploy_password = SecureRandom.urlsafe_base64(18)
+      self.deploy_password = nil
+      until deploy_password
+        self.deploy_password = SecureRandom.urlsafe_base64(18)
+        # ensure the password starts with a letter or number.
+        self.deploy_password = nil unless (/^[a-zA-Z0-9]/).match(deploy_password)
+      end
+      
 
       print "What version of Ruby would you like to install (default: #{ruby_default})? "
       if defaults
@@ -148,7 +155,7 @@ module BarkestServerPrep
 
       print "#{host_info['PRETTY_NAME']}\n"
 
-      raise "Host OS (#{host_id})is not supported." unless [:centos, :ubuntu].include?(host_id)
+      raise "Host OS (#{host_id})is not supported." unless [:centos, :ubuntu, :raspbian].include?(host_id)
 
     end
 

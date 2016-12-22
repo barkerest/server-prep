@@ -172,8 +172,8 @@ location / {
       case host_id
         when :centos
           centos_configure_passenger shell
-        when :ubuntu
-          ubuntu_configure_passenger shell
+        when :ubuntu, :raspbian
+          nil
         else
           raise 'not implemented'
       end
@@ -198,9 +198,6 @@ location / {
       shell.sudo_exec 'iptables -I INPUT -p tcp --dport 443 -j ACCEPT'
     end
 
-    def ubuntu_configure_passenger(shell)
-
-    end
 
   end
 end

@@ -71,16 +71,29 @@ class ServerPrep
         set_status 'Installing SSH key...'
         ssh_copy_id shell2
 
-        set_status 'Installing rbenv...'
-        install_rbenv shell2
+        unless global_ruby?
+          set_status 'Installing rbenv...'
+          install_rbenv shell2
+        end
       end
-      deploy_shell do |shell2|
+
+      if global_ruby?
         set_status "Installing Ruby #{ruby_version} (this will take a while)..."
-        install_ruby shell2
+        install_ruby_global shell
 
         set_status "Installing Rails #{rails_version} (this will take a while)..."
-        install_rails shell2
+        install_rails shell
+      else
+        deploy_shell do |shell2|
+          set_status "Installing Ruby #{ruby_version} (this will take a while)..."
+          install_ruby shell2
 
+          set_status "Installing Rails #{rails_version} (this will take a while)..."
+          install_rails shell2
+        end
+      end
+
+      deploy_shell do |shell2|
         set_status 'Installing fly_trap...'
         install_flytrap shell2
       end
