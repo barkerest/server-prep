@@ -4,9 +4,10 @@ module BarkestServerPrep
     def ssh_copy_id(shell)
       stat = shell.instance_variable_get(:@stat_console)
 
-      if File.exist?('~/.ssh/rsa_id.pub')
-        data = File.read('~/.ssh/rsa_id.pub')
+      # read the local RSA ID if possible.
+      data = File.read('~/.ssh/id_rsa.pub') rescue nil
 
+      if data
         # we should be adding this to a blank account, so ...
         shell.exec 'if [ ! -d ~/.ssh ]; then mkdir ~/.ssh; fi'
         shell.exec 'chmod 700 ~/.ssh'

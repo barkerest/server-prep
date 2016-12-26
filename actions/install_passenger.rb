@@ -53,10 +53,15 @@ module BarkestServerPrep
     end
 
     def raspbian_install_passenger(shell)
+
+      # get the home path for the current user.
+      home_path = shell.exec("eval echo ~#{admin_user}").to_s.split("\n").first.to_s.strip
+      raise 'failed to locate admin user\'s home path' if home_path == ''
+
       shell.sudo_exec 'gem install passenger'
       shell.sudo_exec 'passenger-install-nginx-module --auto --auto-download --languages ruby'
 
-      shell.write_file '/lib/systemd/system/nginx.service',
+      shell.write_file "#{home_path}/nginx.service",
           <<-EOSCRIPT
 [Unit]
 Description=The NGINX HTTP and reverse proxy server
@@ -64,7 +69,7 @@ After=syslog.target network.target remote-fs.target nss-lookup.target
 
 [Service]
 Type=forking
-PIDFile=/opt/nginx/logs/nginx.pid
+PIDFile=/run/nginx.pid
 ExecStartPre=/opt/nginx/sbin/nginx -t
 ExecStart=/opt/nginx/sbin/nginx
 ExecReload=/bin/kill -s HUP $MAINPID
@@ -75,10 +80,12 @@ PrivateTmp=true
 WantedBy=multi-user.target
       EOSCRIPT
 
+      shell.sudo_exec "mv #{home_path}/nginx.service /lib/systemd/system/nginx.service"
+
       shell.sudo_exec 'systemctl daemon-reload'
-      shell.sudo_exec 'systemctl stop nginx' rescue nil
-      shell.sudo_exec 'systemctl start nginx'
       shell.sudo_exec 'systemctl enable nginx'
+
+      shell.exec 'export PATH="/opt/nginx/sbin:$PATH"'
     end
 
   end

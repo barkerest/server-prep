@@ -18,7 +18,7 @@ module BarkestServerPrep
 
       shell.write_file "#{admin_home}/tmp_sshd_conf", contents
       shell.sudo_exec "chown root:root #{admin_home}/tmp_sshd_conf"
-      shell.sudo_exec "chmod 600 #{admin_home}/tmp_sshd_conf"
+      shell.sudo_exec "chmod 644 #{admin_home}/tmp_sshd_conf"
       shell.sudo_exec "mv -f #{admin_home}/tmp_sshd_conf /etc/ssh/sshd_config"
 
       # shouldn't disconnect us ... but who knows...

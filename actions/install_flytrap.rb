@@ -3,7 +3,7 @@ require 'securerandom'
 module BarkestServerPrep
   module InstallFlytrap
 
-    FLY_TRAP_PING = "ft-" + SecureRandom.urlsafe_base64(9)
+    FLY_TRAP_PING = 'ft_' + SecureRandom.hex(6)
 
     FLY_TRAP_ROUTES = <<-EOCFG
 Rails.application.routes.draw do
@@ -17,7 +17,7 @@ Rails.application.routes.draw do
   get '/(:trigger)', trigger: /.+/, controller: 'trap', action: 'index'
   root 'trap#index'
 end
-    EOCFG
+EOCFG
 
     FLY_TRAP_SECRETS = <<-EOCFG
 # [#{Time.now.strftime('%Y-%m-%d %H:%M:%S')}]
@@ -28,7 +28,7 @@ development:
   secret_key_base: #{SecureRandom.urlsafe_base64(60)}
 production:
   secret_key_base: #{SecureRandom.urlsafe_base64(60)}
-    EOCFG
+EOCFG
 
     private_constant :FLY_TRAP_PING, :FLY_TRAP_ROUTES, :FLY_TRAP_SECRETS
 

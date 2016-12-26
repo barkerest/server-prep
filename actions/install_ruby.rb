@@ -9,7 +9,7 @@ module BarkestServerPrep
       mm = (/^(\d+\.\d+)\./).match(ruby_version)[1]
 
       result = shell.exec('ruby -v').to_s.partition("\n")[0].strip
-      ver = (/^ruby\s(#{ruby_version.gsub('.', '\.')})[^\d]*/).match(result)[1]
+      ver = ((/^ruby\s(#{ruby_version.gsub('.', '\.')})[^\d]*/).match(result) || [])[1]
       return nil if ver == ruby_version
 
       shell.exec "wget http://ftp.ruby-lang.org/pub/ruby/#{mm}/ruby-#{ruby_version}.tar.gz"
@@ -20,7 +20,7 @@ module BarkestServerPrep
       shell.sudo_exec "make install"
 
       result = shell.exec('ruby -v').to_s.partition("\n")[0].strip
-      ver = (/^ruby\s(#{ruby_version.gsub('.', '\.')})[^\d]*/).match(result)[1]
+      ver = ((/^ruby\s(#{ruby_version.gsub('.', '\.')})[^\d]*/).match(result) || [])[1]
       raise "ruby version mismatch '#{ver}' <> '#{ruby_version}'" unless ver == ruby_version
 
       shell.exec "echo 'gem: --no-ri --no-rdoc' > ~/.gemrc"

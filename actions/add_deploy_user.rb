@@ -7,6 +7,7 @@ module BarkestServerPrep
       # clean up first
       shell.sudo_exec "userdel -fr #{deploy_user}" rescue nil
       shell.sudo_exec "groupdel #{deploy_user}" rescue nil
+      shell.sudo_exec "if [ -f /var/spool/cron/crontabs/#{deploy_user} ]; then rm -r /var/spool/cron/crontabs/#{deploy_user}; fi"
 
       # recreate the user.
       shell.sudo_exec "useradd -mU -s /bin/bash #{deploy_user}"

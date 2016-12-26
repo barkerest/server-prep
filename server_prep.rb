@@ -164,6 +164,7 @@ Server Test Path
           if @enable_echo
             super command, options do |data,type|
               @prep.send(:logfile).write(data)
+              @prep.send(:logfile).flush
               @stat_console.append_data data
               if block
                 block.call(data, type)
@@ -174,6 +175,7 @@ Server Test Path
           else
             super command, options do |data,type|
               @prep.send(:logfile).write(data)
+              @prep.send(:logfile).flush
               if block
                 block.call(data, type)
               else

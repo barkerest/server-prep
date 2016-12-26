@@ -7,6 +7,10 @@ module BarkestServerPrep
     PASSENGER_ROOT_PLACEHOLDER = /\?\?PR/
     DEPLOY_HOME_PLACEHOLDER = /\?\?DH/
     INST_REG_COMMENT_PLACEHOLDER = /\?\?IR/
+    CONFIG_PATH_PLACEHOLDER = /\?\?CP/
+    IP6_COMMENT_PLACEHOLDER = /\?\?I6/
+    DEPLOY_RUBY_COMMENT_PLACEHOLDER = /\?\?DC/
+    GLOBAL_RUBY_COMMENT_PLACEHOLDER = /\?\?GC/
 
     PASSENGER_ROOT_PATH = 'ruby/vendor_ruby/phusion_passenger/locations.ini'
     PASSENGER_ROOT_SEARCH = %w(/usr/share /usr/lib)
@@ -28,7 +32,7 @@ http {
   # Basic Settings
   ##
 
-  include /etc/nginx/mime.types;
+  include ??CP/mime.types;
   default_type application/octet-stream;
 
   log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
@@ -60,7 +64,8 @@ http {
   ##
 
   passenger_root                  ??PR;
-  passenger_ruby                  ??DH/.rbenv/shims/ruby;
+  ??DCpassenger_ruby                  ??DH/.rbenv/shims/ruby;
+  ??GCpassenger_ruby                  /usr/bin/ruby;
   passenger_log_level             1;
   ??IRpassenger_instance_registry_dir /var/run/passenger-instreg;
 
@@ -70,9 +75,9 @@ http {
 
   server {
     listen 80 default_server;
-    listen [::]:80 default_server ipv6only=on;
+    ??I6listen [::]:80 default_server ipv6only=on;
     listen 443 ssl;
-    listen [::]:443 ssl;
+    ??I6listen [::]:443 ssl;
 
     ssl_certificate       /var/ssl/ssl.crt;
     ssl_certificate_key   /var/ssl/ssl.key;
@@ -117,12 +122,28 @@ location / {
       shell.sudo_exec_ignore "usermod -G ruby-apps -a #{deploy_user}"
       shell.sudo_exec_ignore "usermod -G #{deploy_user} -a ruby-apps"
 
+      # find the config file location.
+      possible = %w(/etc/nginx/nginx.conf /opt/nginx/conf/nginx.conf).map {|v| "if [ -f #{v} ]; then echo #{v};" }
+      conf_path = shell.sudo_exec(possible.join(" el") + ' fi').to_s.split("\n").first.to_s.strip
+
+      raise 'failed to locate nginx config' if conf_path == ''
+
+      conf_dir = conf_path.rpartition('/')[0]
+
       # backup and remove the original configuration.
-      shell.sudo_exec 'if [ ! -f /etc/nginx/nginx.conf.original ]; then mv -f /etc/nginx/nginx.conf /etc/nginx/nginx.conf.original; fi'
+      shell.sudo_exec "if [ ! -f #{conf_path}.original ]; then mv -f #{conf_path} #{conf_path}.original; fi"
 
       # get the passenger_root path.
       pr_path = shell.sudo_exec_ignore("ls {#{PASSENGER_ROOT_SEARCH.join(',')}}/#{PASSENGER_ROOT_PATH} 2>/dev/null")
       pr_path = pr_path.to_s.split("\n").first.to_s.strip
+      if pr_path == ''
+        pr_path = shell.sudo_exec_ignore('gem specification passenger gem_dir').to_s.split("\n").first.to_s.strip
+        if pr_path[0..2] == '---'
+          pr_path = eval(pr_path[3..-1].strip)
+        else
+          pr_path = ''
+        end
+      end
       raise 'failed to locate passenger_root path' if pr_path == ''
 
       # get the home path for the current user.
@@ -136,17 +157,26 @@ location / {
               .gsub(PASSENGER_ROOT_PLACEHOLDER, pr_path)
               .gsub(DEPLOY_HOME_PLACEHOLDER, deploy_home)
               .gsub(INST_REG_COMMENT_PLACEHOLDER, host_id == :centos ? '' : '# ')
+              .gsub(CONFIG_PATH_PLACEHOLDER, conf_dir)
+              .gsub(IP6_COMMENT_PLACEHOLDER, enable_ip6? ? '' : '# ')
+              .gsub(DEPLOY_RUBY_COMMENT_PLACEHOLDER, global_ruby? ? '# ' : '')
+              .gsub(GLOBAL_RUBY_COMMENT_PLACEHOLDER, global_ruby? ? '' : '# ')
       )
 
       # move it where it belongs.
-      shell.sudo_exec "mv -f #{home_path}/nginx.conf /etc/nginx/nginx.conf"
-      shell.sudo_exec 'chown root:root /etc/nginx/nginx.conf && chmod 644 /etc/nginx/nginx.conf'
+      shell.sudo_exec "mv -f #{home_path}/nginx.conf #{conf_path}"
+      shell.sudo_exec "chown root:root #{conf_path} && chmod 644 #{conf_path}"
+
+      # create the log folder.
+      shell.sudo_exec 'if [ ! -d /var/log/nginx ]; then mkdir /var/log/nginx; fi'
 
       # create the location folders.
+      shell.sudo_exec 'if [ ! -d /etc/nginx ]; then mkdir /etc/nginx; fi'
       %w(locations-available locations-enabled).each do |loc|
         loc = "/etc/nginx/#{loc}"
         shell.sudo_exec "if [ ! -d #{loc} ]; then mkdir #{loc}; fi"
-        shell.sudo_exec "chown #{deploy_user}:root #{loc} && chmod 6755 #{loc}"
+        shell.sudo_exec "chown #{deploy_user}:root #{loc}"
+        shell.sudo_exec "chmod 6755 #{loc}"
       end
 
       # create the default location.
@@ -158,6 +188,7 @@ location / {
       )
       shell.sudo_exec "mv -f #{home_path}/default.loc /etc/nginx/locations-available/default"
       shell.sudo_exec "chown #{deploy_user}:root /etc/nginx/locations-available/default && chmod 644 /etc/nginx/locations-available/default"
+      shell.sudo_exec "rm -f /etc/nginx/locations-enabled/default"
       shell.sudo_exec "ln -s /etc/nginx/locations-available/default /etc/nginx/locations-enabled/default"
 
       # create the SSL files.
@@ -198,6 +229,10 @@ location / {
       shell.sudo_exec 'iptables -I INPUT -p tcp --dport 443 -j ACCEPT'
     end
 
+
+    def enable_ip6?
+      host_id != :raspbian
+    end
 
   end
 end
