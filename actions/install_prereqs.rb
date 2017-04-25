@@ -5,7 +5,7 @@ module BarkestServerPrep
       case host_id
         when :centos
           centos_install_prereqs shell
-        when :ubuntu, :raspbian
+        when :ubuntu, :raspbian, :debian
           debian_install_prereqs shell
         else
           raise 'not implemented'

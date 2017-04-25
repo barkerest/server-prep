@@ -5,7 +5,7 @@ module BarkestServerPrep
       case host_id
         when :centos
           centos_install_mariadb shell
-        when :ubuntu, :raspbian
+        when :ubuntu, :raspbian, :debian
           debian_install_mariadb shell
         else
           raise 'not implemented'

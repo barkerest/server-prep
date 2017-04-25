@@ -7,6 +7,8 @@ module BarkestServerPrep
           centos_install_passenger shell
         when :ubuntu
           ubuntu_install_passenger shell
+        when :debian
+          debian_install_passenger shell
         when :raspbian
           raspbian_install_passenger shell
         else
@@ -47,7 +49,24 @@ module BarkestServerPrep
       shell.sudo_exec "echo deb https://oss-binaries.phusionpassenger.com/apt/passenger #{distro} main > /etc/apt/sources.list.d/passenger.list"
       shell.sudo_exec 'apt-get -q update'
       shell.sudo_exec 'apt-get -y -q install nginx-extras passenger'
-      shell.sudo_exec 'systemctl stop nginx' rescue nil
+      shell.sudo_exec_ignore 'systemctl stop nginx'
+      shell.sudo_exec 'systemctl start nginx'
+      shell.sudo_exec 'systemctl enable nginx'
+    end
+
+    def debian_install_passenger(shell)
+      distros = {
+          '8' => 'jessie',
+      }
+
+      distro = distros[host_info['VERSION_ID']]
+
+      shell.sudo_exec 'apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 561F9B9CAC40B2F7'
+      shell.sudo_exec 'apt-get -y -q install apt-transport-https ca-certificates'
+      shell.sudo_exec "echo deb https://oss-binaries.phusionpassenger.com/apt/passenger #{distro} main > /etc/apt/sources.list.d/passenger.list"
+      shell.sudo_exec 'apt-get -q update'
+      shell.sudo_exec 'apt-get -y -q install nginx-extras passenger'
+      shell.sudo_exec_ignore 'systemctl stop nginx'
       shell.sudo_exec 'systemctl start nginx'
       shell.sudo_exec 'systemctl enable nginx'
     end

@@ -203,7 +203,7 @@ location / {
       case host_id
         when :centos
           centos_configure_passenger shell
-        when :ubuntu, :raspbian
+        when :ubuntu, :raspbian, :debian
           nil
         else
           raise 'not implemented'
