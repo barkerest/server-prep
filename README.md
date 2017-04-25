@@ -3,7 +3,7 @@
 A script designed to make it easy to setup a nginx/passenger server.
 The script itself runs in Ruby, so you will need to have Ruby installed locally first.
 
-The script uses the **barkest_ssh** gem (v 1.1.10+) to communicate with the target server.
+The script uses the **shells** gem (v 0.1.7+) to communicate with the target server.
 
 The script has been tested against CentOS 7 and Ubuntu 16.04.  The script will fail for any other
 distro at this point in time.  If you want to test it against another distro, it should be fairly

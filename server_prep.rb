@@ -1,7 +1,14 @@
 #!/usr/bin/env ruby
 
-require 'barkest_ssh'
-raise "Requires 'barkest_ssh' version 1.1.12 or greater." unless Gem::Version.new(BarkestSsh::VERSION) >= Gem::Version.new('1.1.12')
+REQUIRED_SHELLS_VERSION = '0.1.7'
+
+begin
+  require 'shells'
+  raise "Requires 'shells' gem version #{REQUIRED_SHELLS_VERSION} or greater." unless Gem::Version.new(Shells::VERSION) >= Gem::Version.new(REQUIRED_SHELLS_VERSION)
+rescue LoadError
+  raise "Requires 'shells' gem version #{REQUIRED_SHELLS_VERSION} or greater."
+end
+
 
 require 'io/console'
 require 'securerandom'
@@ -156,6 +163,7 @@ Server Test Path
       @enable_echo = false
     end
 
+
     shell.instance_variable_set(:@stat_console, @stat_console)
     shell.instance_variable_set(:@prep, self)
 
@@ -189,16 +197,32 @@ Server Test Path
       ret
     end
 
+    def shell.sudo_exec_ignore(command, &block)
+      sudo_exec command, on_non_zero_exit_code: :ignore, &block
+    end
+
+    def shell.sudo_exec_raise(command, &block)
+      sudo_exec command, on_non_zero_exit_code: :raise, &block
+    end
+
+    def shell.exec_ignore(command, &block)
+      exec command, on_non_zero_exit_code: :ignore, &block
+    end
+
+    def shell.exec_raise(command, &block)
+      exec command, on_non_zero_exit_code: :raise
+    end
+
   end
 
   def admin_shell(auto_enable_echo = true, &block)
-    BarkestSsh::SecureShell.new(
+    Shells::SshSession.new(
         host: host,
         user: admin_user,
         password: admin_password,
         silence_wait: 0,
-        replace_cr: "\n",
-        on_non_zero_exit_code: :raise_error,
+        retrieve_exit_code: true,
+        on_non_zero_exit_code: :raise,
     ) do |shell|
 
       enhance_shell shell
@@ -210,13 +234,13 @@ Server Test Path
   end
 
   def deploy_shell(auto_enable_echo = true, &block)
-    BarkestSsh::SecureShell.new(
+    Shells::SshSession.new(
         host: host,
         user: deploy_user,
         password: deploy_password,
         silence_wait: 0,
-        replace_cr: "\n",
-        on_non_zero_exit_code: :raise_error,
+        retrieve_exit_code: true,
+        on_non_zero_exit_code: :raise,
     ) do |shell|
 
       enhance_shell shell

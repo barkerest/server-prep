@@ -7,8 +7,8 @@ module BarkestServerPrep
     private :admin_password
 
     def get_config
-      print "This script will configure an Linux server for use with Phusion Passenger.\n"
-      print "It is currently setup to configure CentOS, Ubuntu, or Raspbian.\n"
+      print "This script will configure a Linux server for use with Phusion Passenger.\n"
+      print "It is currently setup to configure CentOS, Ubuntu, Debian, or Raspbian.\n"
 
       print "Press <ENTER> to continue, or <CTRL>+<C> to exit.\n"
       STDIN.gets
@@ -29,8 +29,8 @@ module BarkestServerPrep
 
     def get_deploy_config(defaults = false)
       deploy_default = 'deploy'
-      ruby_default = '2.2.5'
-      rails_default = '4.2.5.2'
+      ruby_default = '2.4.1'
+      rails_default = '4.2.7.1'
 
       print "The deployment user will be recreated on the target.\n"
       print "That means if the user already exists, all their data will be removed.\n"
@@ -75,7 +75,7 @@ module BarkestServerPrep
         print "#{rails_default}\n"
       else
         self.rails_version = defaults ? '' : STDIN.gets.strip
-        self.rails_version = '4.2.5.2' if self.rails_version == ''
+        self.rails_version = rails_default if self.rails_version == ''
         a,b,c,d = self.rails_version.split('.').map{|v| v.to_i}
         a ||= 4
         b ||= 0
@@ -155,7 +155,7 @@ module BarkestServerPrep
 
       print "#{host_info['PRETTY_NAME']}\n"
 
-      raise "Host OS (#{host_id})is not supported." unless [:centos, :ubuntu, :raspbian].include?(host_id)
+      raise "Host OS (#{host_id})is not supported." unless [:centos, :ubuntu, :debian, :raspbian].include?(host_id)
 
     end
 
