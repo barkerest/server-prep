@@ -30,7 +30,7 @@ module BarkestServerPrep
     def get_deploy_config(defaults = false)
       deploy_default = 'deploy'
       ruby_default = '2.4.1'
-      rails_default = '4.2.7.1'
+      rails_default = '4.2.8'
 
       print "The deployment user will be recreated on the target.\n"
       print "That means if the user already exists, all their data will be removed.\n"

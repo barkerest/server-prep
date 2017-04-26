@@ -7,7 +7,7 @@ module BarkestServerPrep
       shell.sudo_exec('/usr/local/bin/nginx-test')
 
       # stop the service.
-      shell.sudo_exec 'systemctl stop nginx.service' rescue nil
+      shell.sudo_exec_ignore 'systemctl stop nginx.service'
 
       # start the service.
       shell.sudo_exec 'systemctl start nginx.service'

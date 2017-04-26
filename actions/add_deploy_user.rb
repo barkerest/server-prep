@@ -5,8 +5,8 @@ module BarkestServerPrep
 
     def add_deploy_user(shell)
       # clean up first
-      shell.sudo_exec "userdel -fr #{deploy_user}" rescue nil
-      shell.sudo_exec "groupdel #{deploy_user}" rescue nil
+      shell.sudo_exec_ignore "userdel -fr #{deploy_user}"
+      shell.sudo_exec_ignore "groupdel #{deploy_user}"
       shell.sudo_exec "if [ -f /var/spool/cron/crontabs/#{deploy_user} ]; then rm -r /var/spool/cron/crontabs/#{deploy_user}; fi"
 
       # recreate the user.

@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-REQUIRED_SHELLS_VERSION = '0.1.7'
+REQUIRED_SHELLS_VERSION = '0.1.9'
 
 begin
   require 'shells'
@@ -271,8 +271,8 @@ if $0 == __FILE__
     print "\033[2J\n"
 
     prep.perform
-  rescue =>e
+  ensure
+    # reset the console formatting.
     print "\033[0J\033[0m\n"
-    raise e
   end
 end

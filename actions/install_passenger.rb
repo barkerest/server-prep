@@ -23,7 +23,7 @@ module BarkestServerPrep
       shell.sudo_exec 'yum -y install pygpgme curl'
       shell.sudo_exec 'curl --fail -sSLo /etc/yum.repos.d/passenger.repo https://oss-binaries.phusionpassenger.com/yum/definitions/el-passenger.repo'
       shell.sudo_exec 'yum -y install nginx passenger'
-      shell.sudo_exec 'systemctl stop nginx' rescue nil
+      shell.sudo_exec_ignore 'systemctl stop nginx'
       shell.sudo_exec 'systemctl start nginx'
       shell.sudo_exec 'systemctl enable nginx'
     end

@@ -16,7 +16,7 @@ module BarkestServerPrep
 
     def centos_install_mariadb(shell)
       shell.sudo_exec 'yum -y install mariadb-server mariadb-devel'
-      shell.sudo_exec 'systemctl stop mariadb.service' rescue nil
+      shell.sudo_exec_ignore 'systemctl stop mariadb.service'
       shell.sudo_exec 'systemctl start mariadb.service'
       shell.sudo_exec 'systemctl enable mariadb.service'
     end
@@ -26,7 +26,7 @@ module BarkestServerPrep
       shell.sudo_exec 'debconf-set-selections <<< \'mariadb-server mysql-server/root_password_again password root\''
 
       shell.sudo_exec 'apt-get -y -q install mariadb-server mariadb-client libmysqlclient-dev'
-      shell.sudo_exec 'systemctl stop mysql.service' rescue nil
+      shell.sudo_exec_ignore 'systemctl stop mysql.service'
       shell.sudo_exec 'systemctl start mysql.service'
       shell.sudo_exec 'systemctl enable mysql.service'
     end

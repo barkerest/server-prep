@@ -5,16 +5,17 @@ module BarkestServerPrep
       stat = shell.instance_variable_get(:@stat_console)
 
       # read the local RSA ID if possible.
-      data = File.read('~/.ssh/id_rsa.pub') rescue nil
+      id_file = File.expand_path('~/.ssh/id_rsa.pub')
+      data = File.exist?(id_file) ? File.read(id_file) : nil
 
       if data
         # we should be adding this to a blank account, so ...
-        shell.exec 'if [ ! -d ~/.ssh ]; then mkdir ~/.ssh; fi'
-        shell.exec 'chmod 700 ~/.ssh'
+        shell.exec "if [ ! -d #{deploy_home}/.ssh ]; then mkdir #{deploy_home}/.ssh; fi"
+        shell.exec "chmod 700 #{deploy_home}/.ssh"
 
         # authorized_keys will simply be our public key.
-        shell.write_file "#{deploy_home}/authorized_keys", data
-        shell.exec 'chmod 600 ~/.ssh/authorized_keys'
+        shell.write_file "#{deploy_home}/.ssh/authorized_keys", data
+        shell.exec "chmod 600 #{deploy_home}/.ssh/authorized_keys"
 
         stat.append_data "\033[0;32;1mDone.\033[0m Public key setup.\n"
       else
