@@ -32,7 +32,7 @@ int main(int argc, char **argv)
     def create_nginx_utils(shell)
 
       home_path = shell.exec("eval echo \"~#{admin_user}\"").split("\n").first.to_s.strip
-      nginx_path = shell.exec("which nginx").split("\n").first.to_s.strip
+      nginx_path = shell.sudo_exec("which nginx").split("\n").first.to_s.strip
 
       { 'nginx-reload' => UTIL_NGINX_RELOAD, 'nginx-test' => UTIL_NGINX_TEST }.each do |util,src|
         shell.write_file "#{home_path}/temp-util.c", src.gsub("??NG", nginx_path)
