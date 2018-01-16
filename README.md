@@ -45,7 +45,7 @@ And then these will prompt for the password, user name, and host as needed:
 
 `$ ruby server_prep.rb -auto`
 
-The defaults for Ruby and Rails are `2.2.5` and `4.2.5.2` repectively.  If you want to use different
+The defaults for Ruby and Rails are `2.4.3` and `4.2.10` repectively.  If you want to use different
 versions, you can change the defaults in `actions/get_config.rb` or omit the `-auto` flag so that you
 can answer all of the questions.
 
